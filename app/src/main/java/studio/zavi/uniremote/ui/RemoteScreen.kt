@@ -310,8 +310,8 @@ fun RemoteScreen(vm: MainViewModel, device: TvDevice, controller: TvController, 
 
     if (showKeyboard) {
         KeyboardDialog(
-            canBackspace = controller.supports(RemoteKey.BACKSPACE),
-            onSend = { vm.sendText(it) },
+            onStart = { vm.startLiveTyping() },
+            onType = { vm.liveType(it) },
             onKey = { vm.send(it) },
             onDismiss = { showKeyboard = false },
         )

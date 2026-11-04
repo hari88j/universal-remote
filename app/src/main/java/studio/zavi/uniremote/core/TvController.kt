@@ -21,6 +21,9 @@ interface TvController {
     val supportsApps: Boolean
     val supportsLinks: Boolean get() = false
 
+    /** True if [sendText] sets the whole field (Android TV); false if it types at the cursor. */
+    val textReplacesField: Boolean get() = false
+
     fun supports(key: RemoteKey): Boolean
 
     /** Connects, pairing first if needed. Returns the device with any new credentials filled in. */

@@ -152,50 +152,61 @@ fun PairingCodeDialog(deviceName: String, error: String?, onSubmit: (String) -> 
 // ---------------------------------------------------------------------- remote extras
 
 @Composable
-fun KeyboardDialog(canBackspace: Boolean, onSend: (String) -> Unit, onKey: (RemoteKey) -> Unit, onDismiss: () -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
+fun KeyboardDialog(onStart: () -> Unit, onType: (String) -> Unit, onKey: (RemoteKey) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
-    val send = {
-        if (text.isNotEmpty()) {
-            onSend(text)
-            text = ""
-        }
+    LaunchedEffect(Unit) { onStart() }
+    val submit = {
+        onKey(RemoteKey.ENTER)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Type on TV") },
         text = {
             Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusDot(true)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Live — appears on the TV as you type",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = C.green,
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    "Open a search or text box on the TV first, then type here.",
+                    "Open a search box on the TV first.",
                     style = MaterialTheme.typography.bodySmall,
                     color = C.secondaryLabel,
                 )
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it },
+                    onValueChange = {
+                        text = it
+                        onType(it)
+                    },
                     singleLine = true,
-                    placeholder = { Text("Search for…") },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { send() }),
+                    placeholder = { Text("Start typing…") },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { submit() }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (canBackspace) {
-                        OutlinedButton(onClick = { onKey(RemoteKey.BACKSPACE) }) {
-                            Icon(Icons.Rounded.Backspace, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Delete")
-                        }
+                    OutlinedButton(onClick = {
+                        text = ""
+                        onType("")
+                    }) {
+                        Icon(Icons.Rounded.Backspace, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Clear")
                     }
-                    OutlinedButton(onClick = { onKey(RemoteKey.ENTER) }) { Text("Enter") }
+                    OutlinedButton(onClick = { submit() }) { Text("Search / Enter") }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { send() }) { Text("Send") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
     )
     LaunchedEffect(Unit) {
         delay(200)

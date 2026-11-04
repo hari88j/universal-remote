@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import studio.zavi.uniremote.core.Brand
 import studio.zavi.uniremote.core.NeedsPairingException
@@ -236,6 +237,58 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 throw e
             } catch (e: Exception) {
                 say(friendly(e))
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ live typing
+
+    private var liveSent = ""
+    private var liveTarget = ""
+    private var liveJob: Job? = null
+    private val liveLock = kotlinx.coroutines.sync.Mutex()
+
+    /** Call when the keyboard opens: the TV field is assumed empty. */
+    fun startLiveTyping() {
+        liveJob?.cancel()
+        liveSent = ""
+        liveTarget = ""
+    }
+
+    /**
+     * Mirrors the phone's text field onto the TV as you type. Changes are batched briefly,
+     * then sent either as the whole text (Android TV) or as backspaces + new characters.
+     */
+    fun liveType(text: String) {
+        val s = active ?: return
+        liveTarget = text
+        liveJob?.cancel()
+        liveJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(120)
+            liveLock.withLock {
+                val target = liveTarget
+                val before = liveSent
+                if (target == before) return@withLock
+                try {
+                    val c = s.controller
+                    if (c.textReplacesField) {
+                        if (target.isEmpty()) {
+                            repeat(before.length.coerceAtMost(40)) { c.send(RemoteKey.BACKSPACE) }
+                        } else {
+                            c.sendText(target)
+                        }
+                    } else {
+                        val common = before.commonPrefixWith(target).length
+                        repeat(before.length - common) { c.send(RemoteKey.BACKSPACE) }
+                        val added = target.substring(common)
+                        if (added.isNotEmpty()) c.sendText(added)
+                    }
+                    liveSent = target
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    say(friendly(e))
+                }
             }
         }
     }

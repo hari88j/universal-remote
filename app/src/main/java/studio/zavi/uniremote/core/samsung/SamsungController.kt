@@ -98,10 +98,6 @@ class SamsungController(
                 put("TypeOfRemote", "SendInputString")
             }
         }.toString())
-        sendJson(buildJsonObject {
-            put("method", "ms.remote.control")
-            putJsonObject("params") { put("TypeOfRemote", "SendInputEnd") }
-        }.toString())
     }
 
     override suspend fun apps(): List<TvApp> = APPS

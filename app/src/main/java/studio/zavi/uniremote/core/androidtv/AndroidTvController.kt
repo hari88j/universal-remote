@@ -62,6 +62,7 @@ class AndroidTvController(
     override val supportsText = true
     override val supportsApps = true
     override val supportsLinks = true
+    override val textReplacesField = true
 
     override fun supports(key: RemoteKey): Boolean = true
 
