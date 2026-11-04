@@ -169,7 +169,7 @@ fun KeyboardDialog(canBackspace: Boolean, onSend: (String) -> Unit, onKey: (Remo
                 Text(
                     "Open a search or text box on the TV first, then type here.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Palette.Muted,
+                    color = C.secondaryLabel,
                 )
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
@@ -204,53 +204,6 @@ fun KeyboardDialog(canBackspace: Boolean, onSend: (String) -> Unit, onKey: (Remo
 }
 
 @Composable
-fun NumpadSheet(canBackspace: Boolean, onKey: (RemoteKey) -> Unit, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Palette.Surface) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 28.dp)
-                .padding(bottom = 28.dp),
-        ) {
-            Text("Numbers", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(16.dp))
-            for (row in listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9))) {
-                KeyRow {
-                    for (n in row) NumberKey(n.toString()) { onKey(RemoteKey.digit(n)) }
-                }
-                Spacer(Modifier.height(12.dp))
-            }
-            KeyRow {
-                IconKey(
-                    Icons.Rounded.Backspace,
-                    "Delete",
-                    { onKey(RemoteKey.BACKSPACE) },
-                    modifier = Modifier.size(68.dp),
-                    enabled = canBackspace,
-                )
-                NumberKey("0") { onKey(RemoteKey.DIGIT_0) }
-                PressableKey(
-                    onPress = { onKey(RemoteKey.OK) },
-                    label = "OK",
-                    modifier = Modifier.size(68.dp),
-                    color = Palette.AccentDim,
-                    pressedColor = Palette.Accent,
-                ) {
-                    Text("OK", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NumberKey(text: String, onPress: () -> Unit) {
-    PressableKey(onPress = onPress, label = text, modifier = Modifier.size(68.dp)) {
-        Text(text, fontSize = 24.sp, fontWeight = FontWeight.Medium, color = Palette.Text)
-    }
-}
-
-@Composable
 fun AppsSheet(
     state: AppsState,
     supportsLinks: Boolean,
@@ -259,7 +212,7 @@ fun AppsSheet(
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Palette.Surface) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = C.card) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -273,11 +226,11 @@ fun AppsSheet(
                     CircularProgressIndicator()
                 }
                 is AppsState.Failed -> Column {
-                    Text(state.message, color = Palette.Muted)
+                    Text(state.message, color = C.secondaryLabel)
                     TextButton(onClick = onRetry) { Text("Try again") }
                 }
                 is AppsState.Loaded -> if (state.apps.isEmpty()) {
-                    Text("No apps found on this TV.", color = Palette.Muted)
+                    Text("No apps found on this TV.", color = C.secondaryLabel)
                 } else {
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(84.dp),
@@ -315,7 +268,7 @@ private fun AppTile(app: TvApp, onClick: () -> Unit) {
                 .background(tile),
             contentAlignment = Alignment.Center,
         ) {
-            Text(initials(app.name), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Palette.Text)
+            Text(initials(app.name), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = C.label)
         }
         Spacer(Modifier.height(6.dp))
         Text(
@@ -340,7 +293,7 @@ private fun initials(name: String): String {
 @Composable
 private fun LinkField(onOpen: (String) -> Unit) {
     var url by rememberSaveable { mutableStateOf("") }
-    Text("Open a link on the TV", style = MaterialTheme.typography.labelLarge, color = Palette.Muted)
+    Text("Open a link on the TV", style = MaterialTheme.typography.labelLarge, color = C.secondaryLabel)
     Spacer(Modifier.height(8.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
@@ -391,7 +344,7 @@ fun AddDeviceDialog(onAdd: (name: String, ip: String, brand: Brand) -> Unit, onD
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(4.dp))
-                Text("TV type", style = MaterialTheme.typography.labelLarge, color = Palette.Muted)
+                Text("TV type", style = MaterialTheme.typography.labelLarge, color = C.secondaryLabel)
                 for (b in Brand.entries) {
                     Row(
                         Modifier
@@ -407,7 +360,7 @@ fun AddDeviceDialog(onAdd: (name: String, ip: String, brand: Brand) -> Unit, onD
                 Text(
                     "The TV's IP address is usually under Settings → Network → Status.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Palette.Muted,
+                    color = C.secondaryLabel,
                 )
             }
         },

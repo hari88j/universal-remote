@@ -1,7 +1,6 @@
 package studio.zavi.uniremote.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,22 +15,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tv
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -42,6 +41,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,7 +52,8 @@ import studio.zavi.uniremote.MainViewModel
 import studio.zavi.uniremote.core.TvDevice
 
 @Composable
-fun DevicesScreen(vm: MainViewModel) {
+fun DevicesScreen(vm: MainViewModel, onOpenSettings: () -> Unit) {
+    val c = C
     val saved by vm.saved.collectAsState()
     val discovered by vm.discovered.collectAsState()
     val scanning by vm.scanning.collectAsState()
@@ -63,83 +67,115 @@ fun DevicesScreen(vm: MainViewModel) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(Modifier.padding(bottom = 10.dp)) {
-                Text("Universal Remote", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Control your TV from your phone over Wi-Fi.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.Muted,
-                )
+          Column {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onOpenSettings) {
+                    Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = c.accent)
+                }
             }
+            Text("Remote", style = MaterialTheme.typography.headlineLarge, color = c.label, modifier = Modifier.padding(start = 4.dp))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Control any TV on your Wi-Fi.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = c.secondaryLabel,
+                modifier = Modifier.padding(start = 4.dp, bottom = 14.dp),
+            )
+          }
         }
 
         if (saved.isNotEmpty()) {
-            item { SectionTitle("Your TVs", Modifier.padding(top = 6.dp)) }
-            items(saved, key = { "saved_" + it.id }) { device ->
-                DeviceRow(
-                    device = device,
-                    saved = true,
-                    onClick = { vm.connect(device) },
-                    onRename = { renaming = device },
-                    onForget = { vm.forget(device) },
-                )
-            }
-        }
-
-        item {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SectionTitle("On this Wi-Fi", Modifier.weight(1f))
-                if (scanning) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Scanning…", style = MaterialTheme.typography.labelMedium, color = Palette.Muted)
-                } else {
-                    TextButton(onClick = { vm.scan() }) {
-                        Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Scan again")
+            item { SectionHeader("My TVs") }
+            item {
+                InsetGroup {
+                    saved.forEachIndexed { i, device ->
+                        if (i > 0) GroupDivider(startPadding = 72.dp)
+                        DeviceRow(
+                            device = device,
+                            saved = true,
+                            onClick = { vm.connect(device) },
+                            onRename = { renaming = device },
+                            onForget = { vm.forget(device) },
+                        )
                     }
                 }
             }
         }
 
-        if (fresh.isEmpty() && !scanning) {
-            item {
-                Text(
-                    if (saved.isEmpty()) {
-                        "No TVs found yet. Make sure the TV is on and your phone is on the same Wi-Fi, " +
-                            "or add it by IP address below."
-                    } else {
-                        "No other TVs found."
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Palette.Muted,
-                    modifier = Modifier.padding(vertical = 6.dp),
-                )
+        item {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 16.dp, end = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SectionHeader("On this Wi-Fi", Modifier.weight(1f))
+                if (scanning) {
+                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = c.secondaryLabel)
+                } else {
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { vm.scan() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Rounded.Refresh, contentDescription = null, tint = c.accent, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Scan", style = MaterialTheme.typography.labelLarge, color = c.accent)
+                    }
+                }
             }
-        }
-
-        items(fresh, key = { "found_" + it.id }) { device ->
-            DeviceRow(device = device, saved = false, onClick = { vm.connect(device) })
         }
 
         item {
-            OutlinedButton(onClick = { showAdd = true }, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Add a TV by IP address")
+            InsetGroup {
+                if (fresh.isEmpty()) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Wifi, contentDescription = null, tint = c.secondaryLabel)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            when {
+                                scanning -> "Looking for TVs…"
+                                saved.isEmpty() -> "No TVs found yet. Turn the TV on and keep your phone on the same Wi-Fi."
+                                else -> "No other TVs found."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = c.secondaryLabel,
+                        )
+                    }
+                } else {
+                    fresh.forEachIndexed { i, device ->
+                        if (i > 0) GroupDivider(startPadding = 72.dp)
+                        DeviceRow(device = device, saved = false, onClick = { vm.connect(device) })
+                    }
+                }
+                GroupDivider()
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showAdd = true }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Add, contentDescription = null, tint = c.accent)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Add TV by IP address", style = MaterialTheme.typography.bodyLarge, color = c.accent)
+                }
             }
         }
 
-        item { Tips() }
+        item {
+            Text(
+                "Android/Google TV shows a code the first time. Samsung and LG ask you to Allow. " +
+                    "Fire TV needs ADB debugging on. More tips in Settings.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.secondaryLabel,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
     }
 
     if (showAdd) {
@@ -171,97 +207,62 @@ private fun DeviceRow(
     onRename: () -> Unit = {},
     onForget: () -> Unit = {},
 ) {
+    val c = C
     var menu by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(20.dp)
     val tint = brandColor(device.brand)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(Palette.Surface)
-            .border(1.dp, Palette.Stroke, shape)
             .clickable(onClick = onClick)
-            .padding(start = 14.dp, top = 12.dp, bottom = 12.dp, end = 6.dp),
+            .padding(start = 14.dp, top = 11.dp, bottom = 11.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // App-icon style tile with a glossy gradient.
         Box(
             Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(tint.copy(alpha = 0.16f)),
+                .size(42.dp)
+                .shadow(4.dp, RoundedCornerShape(11.dp), ambientColor = tint, spotColor = tint)
+                .clip(RoundedCornerShape(11.dp))
+                .background(Brush.verticalGradient(listOf(lerp(tint, Color.White, 0.2f), lerp(tint, Color.Black, 0.15f)))),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Tv, contentDescription = null, tint = tint)
+            Icon(Icons.Rounded.Tv, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 device.name,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Medium,
+                color = c.label,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                "${device.brand.short} · ${device.ip}",
-                style = MaterialTheme.typography.bodySmall,
-                color = Palette.Muted,
-            )
+            Text("${device.brand.short} · ${device.ip}", style = MaterialTheme.typography.bodySmall, color = c.secondaryLabel)
         }
         if (saved) {
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = "More options", tint = Palette.Muted)
+                    Icon(Icons.Rounded.MoreVert, contentDescription = "More options", tint = c.tertiaryLabel)
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(text = { Text("Rename") }, onClick = {
                         menu = false
                         onRename()
                     })
-                    DropdownMenuItem(text = { Text("Forget") }, onClick = {
+                    DropdownMenuItem(text = { Text("Forget", color = c.red) }, onClick = {
                         menu = false
                         onForget()
                     })
                 }
             }
         } else {
-            Text(
-                "Connect",
-                style = MaterialTheme.typography.labelLarge,
-                color = Palette.Accent,
+            Icon(
+                Icons.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = c.tertiaryLabel,
                 modifier = Modifier.padding(end = 10.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun Tips() {
-    val shape = RoundedCornerShape(20.dp)
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 10.dp)
-            .clip(shape)
-            .background(Palette.Surface)
-            .border(1.dp, Palette.Stroke, shape)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text("Setup tips", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        Tip("Phone and TV must be on the same Wi-Fi network.")
-        Tip("Android / Google TV: the TV shows a code the first time — type it in here.")
-        Tip("Samsung & LG: choose Allow on the TV the first time you connect.")
-        Tip("Fire TV: turn on Settings → My Fire TV → Developer options → ADB debugging.")
-        Tip("Roku: set Settings → System → Advanced system settings → Control by mobile apps → Network access to Default.")
-        Tip("To switch Samsung / LG on from standby, enable \"Power On with Mobile\" (Samsung) or \"Turn on via Wi-Fi\" (LG).")
-    }
-}
-
-@Composable
-private fun Tip(text: String) {
-    Row {
-        Text("•", color = Palette.Accent, modifier = Modifier.padding(end = 8.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = Palette.Muted)
     }
 }

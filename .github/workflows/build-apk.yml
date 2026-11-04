@@ -24,7 +24,13 @@ jobs:
       - name: Build debug APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          set -o pipefail
+          ./gradlew assembleDebug 2>&1 | tee build.log
+
+      - name: Report compile errors
+        if: failure()
+        run: |
+          grep -E "^e: |error:|What went wrong" -A2 build.log | head -60 | while IFS= read -r line; do echo "::error::$line"; done
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

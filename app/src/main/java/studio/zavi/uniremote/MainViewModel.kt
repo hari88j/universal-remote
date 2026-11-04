@@ -34,6 +34,9 @@ import studio.zavi.uniremote.core.samsung.SamsungController
 import studio.zavi.uniremote.data.DeviceRepository
 import studio.zavi.uniremote.data.DiscoveryManager
 import studio.zavi.uniremote.data.PrefsStore
+import studio.zavi.uniremote.data.AppSettings
+import studio.zavi.uniremote.data.RecentApps
+import studio.zavi.uniremote.data.SettingsStore
 import java.io.File
 import java.net.SocketTimeoutException
 
@@ -60,6 +63,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val identity = ClientIdentity(PrefsStore(app))
     private val discovery = DiscoveryManager(app)
     private val adbKeyDir = File(app.filesDir, "adb")
+    private val settingsStore = SettingsStore(app)
+    private val recentStore = RecentApps(app)
+
+    val settings: StateFlow<AppSettings> = settingsStore.settings
+
+    private val _recentApps = MutableStateFlow<List<TvApp>>(emptyList())
+    val recentApps: StateFlow<List<TvApp>> = _recentApps.asStateFlow()
 
     val saved: StateFlow<List<TvDevice>> = repo.devices
 
@@ -128,6 +138,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 repo.upsert(connected)
                 val stored = repo.devices.value.firstOrNull { it.id == connected.id } ?: connected
                 _apps.value = AppsState.Idle
+                _recentApps.value = recentStore.get(stored.id)
                 _session.value = Session.Active(stored, controller)
             } catch (e: CancellationException) {
                 controller.close()
@@ -248,6 +259,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 s.controller.launch(app)
+                if (active?.device?.id == s.device.id) _recentApps.value = recentStore.add(s.device.id, app)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -270,6 +282,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    // ------------------------------------------------------------------ settings
+
+    fun notify(message: String) = say(message)
+
+    fun updateSettings(change: (AppSettings) -> AppSettings) = settingsStore.update(change)
+
+    /** True when the phone's volume buttons should control the TV instead of the phone. */
+    fun volumeKeysActive(): Boolean = settings.value.volumeKeys && active != null
 
     // ------------------------------------------------------------------ helpers
 
