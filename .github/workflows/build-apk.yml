@@ -64,15 +64,13 @@ jobs:
             cp app/build/outputs/apk/debug/*.apk dist/UniversalRemote.apk
             cp tv/build/outputs/apk/debug/*.apk dist/UniversalRemote-TV.apk
           fi
+          # Releases are immutable, so each build gets its own tag; marking it "latest"
+          # keeps https://github.com/<owner>/<repo>/releases/latest/download/<file> pointing at it.
+          TAG="build-${GITHUB_RUN_NUMBER}"
           NOTES="Built from ${GITHUB_SHA::7}. Phone: UniversalRemote.apk. TV helper (on-screen messages): UniversalRemote-TV.apk."
           publish() {
-            if gh release view apk > /dev/null 2>&1; then
-              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/apk" -f sha="$GITHUB_SHA" -F force=true > /dev/null
-              gh release upload apk dist/UniversalRemote.apk dist/UniversalRemote-TV.apk --clobber
-              gh release edit apk --notes "$NOTES"
-            else
-              gh release create apk dist/UniversalRemote.apk dist/UniversalRemote-TV.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
-            fi
+            gh release create "$TAG" dist/UniversalRemote.apk dist/UniversalRemote-TV.apk \
+              --target "$GITHUB_SHA" --latest --title "Universal Remote (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES"
           }
           publish 2>&1 | tee publish.log || { while IFS= read -r l; do echo "::error::$l"; done < publish.log; exit 1; }
         env:
