@@ -36,7 +36,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: UniversalRemote-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            tv/build/outputs/apk/debug/*.apk
 
       - name: Build release APK (smaller, signed with the debug key)
         id: release
@@ -57,17 +59,19 @@ jobs:
           mkdir -p dist
           if [ "${{ steps.release.outcome }}" = "success" ]; then
             cp app/build/outputs/apk/release/*.apk dist/UniversalRemote.apk
+            cp tv/build/outputs/apk/release/*.apk dist/UniversalRemote-TV.apk
           else
             cp app/build/outputs/apk/debug/*.apk dist/UniversalRemote.apk
+            cp tv/build/outputs/apk/debug/*.apk dist/UniversalRemote-TV.apk
           fi
-          NOTES="Built from ${GITHUB_SHA::7}. Download UniversalRemote.apk on your phone and install."
+          NOTES="Built from ${GITHUB_SHA::7}. Phone: UniversalRemote.apk. TV helper (on-screen messages): UniversalRemote-TV.apk."
           publish() {
             if gh release view apk > /dev/null 2>&1; then
               gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/apk" -f sha="$GITHUB_SHA" -F force=true > /dev/null
-              gh release upload apk dist/UniversalRemote.apk --clobber
+              gh release upload apk dist/UniversalRemote.apk dist/UniversalRemote-TV.apk --clobber
               gh release edit apk --notes "$NOTES"
             else
-              gh release create apk dist/UniversalRemote.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
+              gh release create apk dist/UniversalRemote.apk dist/UniversalRemote-TV.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
             fi
           }
           publish 2>&1 | tee publish.log || { while IFS= read -r l; do echo "::error::$l"; done < publish.log; exit 1; }

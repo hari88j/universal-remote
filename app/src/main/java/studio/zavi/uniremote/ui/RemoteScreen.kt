@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Backspace
+import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.FastForward
 import androidx.compose.material.icons.rounded.FastRewind
@@ -88,6 +89,7 @@ fun RemoteScreen(vm: MainViewModel, device: TvDevice, controller: TvController, 
     var mode by rememberSaveable { mutableStateOf(0) } // 0 remote, 1 touch, 2 numbers
     var showKeyboard by remember { mutableStateOf(false) }
     var showApps by remember { mutableStateOf(false) }
+    var showMessage by remember { mutableStateOf(false) }
     var switcher by remember { mutableStateOf(false) }
 
     BackHandler { vm.disconnect() }
@@ -304,7 +306,7 @@ fun RemoteScreen(vm: MainViewModel, device: TvDevice, controller: TvController, 
                 { vm.send(RemoteKey.INPUT) },
                 enabled = controller.supports(RemoteKey.INPUT),
             )
-            ToolButton(Icons.Rounded.Info, "Info", { vm.send(RemoteKey.INFO) }, enabled = controller.supports(RemoteKey.INFO))
+            ToolButton(Icons.Rounded.Campaign, "Message", { showMessage = true })
         }
     }
 
@@ -314,6 +316,16 @@ fun RemoteScreen(vm: MainViewModel, device: TvDevice, controller: TvController, 
             onType = { vm.liveType(it) },
             onKey = { vm.send(it) },
             onDismiss = { showKeyboard = false },
+        )
+    }
+    if (showMessage) {
+        MessageDialog(
+            tvName = device.name,
+            onSend = { text, full, secs ->
+                vm.sendMessage(text, full, secs)
+                showMessage = false
+            },
+            onDismiss = { showMessage = false },
         )
     }
     if (showApps) {

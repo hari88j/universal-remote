@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "UniversalRemote"
 include(":app")
+include(":tv")

@@ -214,6 +214,70 @@ fun KeyboardDialog(onStart: () -> Unit, onType: (String) -> Unit, onKey: (Remote
     }
 }
 
+private val MESSAGE_PRESETS = listOf("Khana ready hai 🍛", "Bas 5 minute aur", "Sone ka time 😴", "Door pe koi hai 🚪", "Phone dekho 📱")
+
+/** Write a message that pops up on the TV screen. */
+@Composable
+fun MessageDialog(tvName: String, onSend: (text: String, fullScreen: Boolean, seconds: Int) -> Unit, onDismiss: () -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    var full by rememberSaveable { mutableStateOf(0) }
+    var secs by rememberSaveable { mutableStateOf(1) }
+    val durations = listOf(5, 10, 30)
+    val focus = remember { FocusRequester() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Message on TV") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                Text(
+                    "Pops up on $tvName's screen over whatever is playing.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = C.secondaryLabel,
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.take(300) },
+                    placeholder = { Text("Type your message…") },
+                    minLines = 2,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(MESSAGE_PRESETS.size) { i ->
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(C.cardHigh)
+                                .clickable { text = MESSAGE_PRESETS[i] }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                        ) {
+                            Text(MESSAGE_PRESETS[i], style = MaterialTheme.typography.labelMedium, color = C.label)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                Text("Style", style = MaterialTheme.typography.labelMedium, color = C.secondaryLabel)
+                Spacer(Modifier.height(6.dp))
+                Segmented(listOf("Banner", "Full screen"), full, { full = it }, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                Text("Show for", style = MaterialTheme.typography.labelMedium, color = C.secondaryLabel)
+                Spacer(Modifier.height(6.dp))
+                Segmented(durations.map { "${it}s" }, secs, { secs = it }, Modifier.fillMaxWidth())
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = text.isNotBlank(), onClick = { onSend(text, full == 1, durations[secs]) }) { Text("Send") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+    LaunchedEffect(Unit) {
+        delay(200)
+        runCatching { focus.requestFocus() }
+    }
+}
+
 @Composable
 fun AppsSheet(
     state: AppsState,

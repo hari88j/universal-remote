@@ -241,6 +241,43 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ------------------------------------------------------------------ on-screen messages
+
+    /**
+     * Shows [text] as a pop-up on the TV. Needs the "Universal Remote TV" helper app
+     * running on the TV (Android TV / Google TV / Fire TV), which listens on port 7890.
+     */
+    fun sendMessage(text: String, fullScreen: Boolean, seconds: Int) {
+        val s = active ?: return
+        val clean = text.trim()
+        if (clean.isEmpty()) return
+        viewModelScope.launch {
+            val line = kotlinx.serialization.json.buildJsonObject {
+                put("text", kotlinx.serialization.json.JsonPrimitive(clean))
+                put("seconds", kotlinx.serialization.json.JsonPrimitive(seconds))
+                put("style", kotlinx.serialization.json.JsonPrimitive(if (fullScreen) "full" else "banner"))
+            }.toString() + "\n"
+            try {
+                withContext(Dispatchers.IO) {
+                    java.net.Socket().use { sock ->
+                        sock.connect(java.net.InetSocketAddress(s.device.ip, TV_HELPER_PORT), 3000)
+                        sock.soTimeout = 4000
+                        sock.getOutputStream().write(line.toByteArray(Charsets.UTF_8))
+                        sock.getOutputStream().flush()
+                        sock.getInputStream().bufferedReader().readLine()
+                    }
+                }
+                say("Shown on ${s.device.name}")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: java.net.ConnectException) {
+                say("Install and open the Universal Remote TV app on ${s.device.name} first.")
+            } catch (e: Exception) {
+                say("Couldn't reach the TV app on ${s.device.name}. Is it installed and open once?")
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ live typing
 
     private var liveSent = ""
@@ -406,5 +443,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         /** The name the TV shows when it asks whether to allow this phone. */
         const val CLIENT_NAME = "Universal Remote"
+
+        /** Port the TV helper app listens on. */
+        const val TV_HELPER_PORT = 7890
     }
 }
