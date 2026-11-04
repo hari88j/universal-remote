@@ -3,6 +3,7 @@ package studio.zavi.uniremote.ui
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -77,6 +78,35 @@ private fun View.tick(enabled: Boolean, strong: Boolean = true) {
     if (enabled) performHapticFeedback(if (strong) HapticFeedbackConstants.VIRTUAL_KEY else HapticFeedbackConstants.CLOCK_TICK)
 }
 
+/** Frosted-glass surface: translucent fill, a top sheen and a bright edge. */
+fun Modifier.glass(shape: Shape, c: AppColors, fill: Color = c.glassFill): Modifier = this
+    .clip(shape)
+    .background(fill)
+    .background(Brush.verticalGradient(0f to c.glassSheen, 0.55f to Color.Transparent))
+    .border(1.dp, Brush.verticalGradient(listOf(c.glassStroke, c.glassStroke.copy(alpha = c.glassStroke.alpha * 0.25f))), shape)
+
+/** Soft coloured glows behind everything, which the glass picks up. */
+@Composable
+fun GlowBackground(modifier: Modifier = Modifier) {
+    val c = C
+    val strength = if (c.isDark) 0.55f else 0.35f
+    Canvas(modifier.fillMaxSize()) {
+        drawRect(c.background)
+        val w = size.width
+        val h = size.height
+        drawCircle(
+            Brush.radialGradient(listOf(c.blob1.copy(alpha = strength), Color.Transparent), center = Offset(w * 0.1f, h * 0.28f), radius = w * 0.75f),
+            radius = w * 0.75f,
+            center = Offset(w * 0.1f, h * 0.28f),
+        )
+        drawCircle(
+            Brush.radialGradient(listOf(c.blob2.copy(alpha = strength), Color.Transparent), center = Offset(w * 0.95f, h * 0.72f), radius = w * 0.7f),
+            radius = w * 0.7f,
+            center = Offset(w * 0.95f, h * 0.72f),
+        )
+    }
+}
+
 /** Gesture + semantics shared by every key: fires on touch-down, optional repeat while held. */
 @Composable
 private fun Modifier.pressGesture(
@@ -139,21 +169,12 @@ fun Key3D(
 ) {
     val c = C
     var pressed by remember { mutableStateOf(false) }
-    val depth by animateDpAsState(if (pressed) 1.dp else elevation, label = "depth")
-    val scale by animateFloatAsState(if (pressed) 0.95f else 1f, label = "scale")
-    val top = when {
-        tint != null && pressed -> lerp(tint, Color.Black, 0.25f)
-        tint != null -> lerp(tint, Color.White, 0.22f)
-        pressed -> c.keyPressedTop
-        else -> c.keyTop
+    val scale by animateFloatAsState(if (pressed) 0.94f else 1f, label = "scale")
+    val fill = when {
+        tint != null -> tint.copy(alpha = if (pressed) 0.85f else 0.6f)
+        pressed -> c.glassFillPressed
+        else -> c.glassFill
     }
-    val bottom = when {
-        tint != null && pressed -> lerp(tint, Color.White, 0.05f)
-        tint != null -> lerp(tint, Color.Black, 0.22f)
-        pressed -> c.keyPressedBottom
-        else -> c.keyBottom
-    }
-    val highlight = if (tint != null) Color.White.copy(alpha = 0.45f) else c.keyHighlight
     Box(
         modifier = modifier
             .graphicsLayer {
@@ -161,10 +182,7 @@ fun Key3D(
                 scaleY = scale
                 alpha = if (enabled) 1f else 0.35f
             }
-            .shadow(depth, shape, clip = false, ambientColor = c.keyShadow, spotColor = c.keyShadow)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(top, bottom)))
-            .border(1.dp, Brush.verticalGradient(listOf(if (pressed) Color.Transparent else highlight, Color.Transparent)), shape)
+            .glass(shape, c, fill)
             .pressGesture(label, enabled, repeat, onPress) { pressed = it },
         contentAlignment = Alignment.Center,
         content = content,
@@ -199,10 +217,7 @@ fun DPad3D(onKey: (RemoteKey) -> Unit, modifier: Modifier = Modifier) {
     val c = C
     Box(
         modifier = modifier
-            .shadow(22.dp, CircleShape, ambientColor = c.keyShadow, spotColor = c.keyShadow)
-            .clip(CircleShape)
-            .background(Brush.verticalGradient(listOf(c.padOuterTop, c.padOuterBottom)))
-            .border(1.dp, Brush.verticalGradient(listOf(c.keyHighlight, Color.Transparent)), CircleShape),
+            .glass(CircleShape, c),
     ) {
         // Inner groove that frames the arrows.
         Box(
@@ -210,11 +225,7 @@ fun DPad3D(onKey: (RemoteKey) -> Unit, modifier: Modifier = Modifier) {
                 .align(Alignment.Center)
                 .fillMaxSize(0.9f)
                 .clip(CircleShape)
-                .border(
-                    1.dp,
-                    Brush.verticalGradient(listOf(Color.Black.copy(alpha = if (c.isDark) 0.5f else 0.08f), c.keyHighlight)),
-                    CircleShape,
-                ),
+                .border(1.dp, c.glassStroke.copy(alpha = c.glassStroke.alpha * 0.4f), CircleShape),
         )
         ArrowZone(RemoteKey.UP, 0f, onKey, Modifier.align(Alignment.TopCenter).fillMaxWidth(0.4f).fillMaxHeight(0.3f))
         ArrowZone(RemoteKey.DOWN, 180f, onKey, Modifier.align(Alignment.BottomCenter).fillMaxWidth(0.4f).fillMaxHeight(0.3f))
@@ -259,10 +270,7 @@ fun Trackpad(onKey: (RemoteKey) -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(40.dp)
     Box(
         modifier = modifier
-            .shadow(18.dp, shape, ambientColor = c.keyShadow, spotColor = c.keyShadow)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(c.padOuterTop, c.padOuterBottom)))
-            .border(1.dp, Brush.verticalGradient(listOf(c.keyHighlight, Color.Transparent)), shape)
+            .glass(shape, c)
             .pointerInput(haptics) {
                 val step = 42.dp.toPx()
                 awaitEachGesture {
@@ -320,10 +328,7 @@ fun Rocker3D(
             .width(72.dp)
             .height(160.dp)
             .alpha(if (enabled) 1f else 0.35f)
-            .shadow(10.dp, shape, ambientColor = c.keyShadow, spotColor = c.keyShadow)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(c.keyTop, c.keyBottom)))
-            .border(1.dp, Brush.verticalGradient(listOf(c.keyHighlight, Color.Transparent)), shape),
+            .glass(shape, c),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         RockerHalf(Icons.Rounded.Add, "$label up", enabled, onUp)
@@ -337,7 +342,7 @@ private fun ColumnScope.RockerHalf(icon: ImageVector, label: String, enabled: Bo
     val c = C
     var pressed by remember { mutableStateOf(false) }
     val overlay by animateColorAsState(
-        if (pressed) Color.Black.copy(alpha = if (c.isDark) 0.35f else 0.08f) else Color.Transparent,
+        if (pressed) c.glassFillPressed else Color.Transparent,
         label = "half",
     )
     Box(
@@ -359,8 +364,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
     val outer = RoundedCornerShape(12.dp)
     Row(
         modifier = modifier
-            .clip(outer)
-            .background(if (c.isDark) Color(0xFF1C1C1E) else Color(0xFFE3E3E8))
+            .glass(outer, c)
             .padding(3.dp),
     ) {
         options.forEachIndexed { i, text ->
@@ -368,15 +372,8 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .then(
-                        if (isSel) {
-                            Modifier.shadow(3.dp, RoundedCornerShape(9.dp), ambientColor = c.keyShadow, spotColor = c.keyShadow)
-                        } else {
-                            Modifier
-                        }
-                    )
                     .clip(RoundedCornerShape(9.dp))
-                    .background(if (isSel) (if (c.isDark) Color(0xFF636366) else Color.White) else Color.Transparent)
+                    .background(if (isSel) c.accent.copy(alpha = 0.45f) else Color.Transparent)
                     .clickable { onSelect(i) }
                     .padding(vertical = 7.dp),
                 contentAlignment = Alignment.Center,
@@ -407,7 +404,6 @@ fun ToolButton(icon: ImageVector, label: String, onClick: () -> Unit, enabled: B
             enabled = enabled,
             shape = RoundedCornerShape(17.dp),
             tint = if (active) c.accent else null,
-            elevation = 6.dp,
         ) {
             Icon(icon, contentDescription = null, tint = if (active) Color.White else c.label)
         }
@@ -422,8 +418,7 @@ fun InsetGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(C.card),
+            .glass(RoundedCornerShape(16.dp), C),
         content = content,
     )
 }

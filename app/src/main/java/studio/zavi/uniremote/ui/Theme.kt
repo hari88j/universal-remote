@@ -38,6 +38,13 @@ data class AppColors(
     val keyShadow: Color,
     val padOuterTop: Color,
     val padOuterBottom: Color,
+    // Liquid Glass
+    val glassFill: Color = Color(0x1AFFFFFF),
+    val glassFillPressed: Color = Color(0x40FFFFFF),
+    val glassStroke: Color = Color(0x40FFFFFF),
+    val glassSheen: Color = Color(0x2EFFFFFF),
+    val blob1: Color = Color(0xFF0A84FF),
+    val blob2: Color = Color(0xFFBF5AF2),
 )
 
 val DarkColors = AppColors(
@@ -60,6 +67,10 @@ val DarkColors = AppColors(
     keyShadow = Color(0xFF000000),
     padOuterTop = Color(0xFF2E2E31),
     padOuterBottom = Color(0xFF141416),
+    glassFill = Color(0x1AFFFFFF),
+    glassFillPressed = Color(0x47FFFFFF),
+    glassStroke = Color(0x3DFFFFFF),
+    glassSheen = Color(0x2EFFFFFF),
 )
 
 val LightColors = AppColors(
@@ -82,6 +93,10 @@ val LightColors = AppColors(
     keyShadow = Color(0xFF8A8A99),
     padOuterTop = Color(0xFFFFFFFF),
     padOuterBottom = Color(0xFFDDDDE3),
+    glassFill = Color(0x8CFFFFFF),
+    glassFillPressed = Color(0xD9FFFFFF),
+    glassStroke = Color(0xE6FFFFFF),
+    glassSheen = Color(0x99FFFFFF),
 )
 
 val LocalAppColors = staticCompositionLocalOf { DarkColors }
@@ -102,6 +117,14 @@ fun brandColor(brand: Brand): Color = when (brand) {
     Brand.FIRE_TV -> Color(0xFFFF9F0A)
 }
 
+/** Colour themes: accent plus the two glows behind the glass. */
+enum class AccentTheme(val label: String, val dark: Color, val light: Color, val glow1: Color, val glow2: Color, val darkBg: Color) {
+    BLUE("Blue", Color(0xFF0A84FF), Color(0xFF007AFF), Color(0xFF0A84FF), Color(0xFFBF5AF2), Color(0xFF05070D)),
+    CRIMSON("Crimson", Color(0xFFFF3B4E), Color(0xFFD7102A), Color(0xFFE0162B), Color(0xFF7A0A16), Color(0xFF0A0204)),
+    EMERALD("Emerald", Color(0xFF30D158), Color(0xFF1E9E45), Color(0xFF13B07A), Color(0xFF0A5C7A), Color(0xFF020A07)),
+    GOLD("Gold", Color(0xFFFFC233), Color(0xFFB8860B), Color(0xFFE0A21B), Color(0xFF8A4B0A), Color(0xFF0B0803)),
+}
+
 enum class ThemeMode(val label: String) { SYSTEM("System"), LIGHT("Light"), DARK("Dark") }
 
 private val AppleType = Typography().let { t ->
@@ -117,13 +140,24 @@ private val AppleType = Typography().let { t ->
 }
 
 @Composable
-fun RemoteTheme(mode: ThemeMode = ThemeMode.SYSTEM, haptics: Boolean = true, content: @Composable () -> Unit) {
+fun RemoteTheme(
+    mode: ThemeMode = ThemeMode.SYSTEM,
+    accent: AccentTheme = AccentTheme.BLUE,
+    haptics: Boolean = true,
+    content: @Composable () -> Unit,
+) {
     val dark = when (mode) {
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    val c = if (dark) DarkColors else LightColors
+    val base = if (dark) DarkColors else LightColors
+    val c = base.copy(
+        accent = if (dark) accent.dark else accent.light,
+        background = if (dark) accent.darkBg else base.background,
+        blob1 = accent.glow1,
+        blob2 = accent.glow2,
+    )
     val scheme = if (dark) {
         darkColorScheme(
             primary = c.accent, onPrimary = Color.White,

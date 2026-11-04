@@ -49,8 +49,10 @@ fun App(vm: MainViewModel) {
 
     BackHandler(enabled = showSettings) { showSettings = false }
 
+    Box(Modifier.fillMaxSize()) {
+    GlowBackground()
     Scaffold(
-        containerColor = C.background,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -77,6 +79,8 @@ fun App(vm: MainViewModel) {
                 }
             }
         }
+    }
+
     }
 
     val connecting = session as? Session.Connecting

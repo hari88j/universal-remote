@@ -1,6 +1,15 @@
 package studio.zavi.uniremote.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -67,6 +76,42 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
         }
 
         item { Spacer(Modifier.height(12.dp)) }
+        item { SectionHeader("Theme") }
+        item {
+            InsetGroup {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    AccentTheme.entries.forEach { theme ->
+                        val selected = settings.accent == theme
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { vm.updateSettings { it.copy(accent = theme) } }
+                                .padding(6.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Brush.linearGradient(listOf(theme.glow1, theme.glow2)))
+                                    .border(if (selected) 3.dp else 0.dp, if (selected) c.label else Color.Transparent, CircleShape),
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                theme.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) c.label else c.secondaryLabel,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item { Spacer(Modifier.height(12.dp)) }
         item { SectionHeader("Remote") }
         item {
             InsetGroup {
@@ -100,7 +145,7 @@ fun SettingsScreen(vm: MainViewModel, onBack: () -> Unit) {
 
         item {
             Text(
-                "Universal Remote 2.0",
+                "Universal Remote 3.0",
                 style = MaterialTheme.typography.bodySmall,
                 color = c.tertiaryLabel,
                 modifier = Modifier.fillMaxWidth().padding(top = 20.dp),

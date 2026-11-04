@@ -206,8 +206,7 @@ fun RemoteScreen(vm: MainViewModel, device: TvDevice, controller: TvController, 
                 items(recent, key = { it.id }) { app ->
                     Box(
                         Modifier
-                            .clip(CircleShape)
-                            .background(c.card)
+                            .glass(CircleShape, c)
                             .clickable { vm.launch(app) }
                             .padding(horizontal = 14.dp, vertical = 7.dp),
                     ) {

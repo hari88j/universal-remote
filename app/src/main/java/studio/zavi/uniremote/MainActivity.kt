@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
-            RemoteTheme(mode = settings.theme, haptics = settings.haptics) {
+            RemoteTheme(mode = settings.theme, accent = settings.accent, haptics = settings.haptics) {
                 App(vm)
             }
         }

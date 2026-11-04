@@ -12,10 +12,12 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import studio.zavi.uniremote.core.TvApp
 import studio.zavi.uniremote.core.str
+import studio.zavi.uniremote.ui.AccentTheme
 import studio.zavi.uniremote.ui.ThemeMode
 
 data class AppSettings(
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    val accent: AccentTheme = AccentTheme.BLUE,
     val haptics: Boolean = true,
     val volumeKeys: Boolean = true,
     val keepScreenOn: Boolean = false,
@@ -32,6 +34,7 @@ class SettingsStore(context: Context) {
         _settings.value = next
         prefs.edit()
             .putString("theme", next.theme.name)
+            .putString("accent", next.accent.name)
             .putBoolean("haptics", next.haptics)
             .putBoolean("volumeKeys", next.volumeKeys)
             .putBoolean("keepScreenOn", next.keepScreenOn)
@@ -40,6 +43,7 @@ class SettingsStore(context: Context) {
 
     private fun load() = AppSettings(
         theme = ThemeMode.entries.firstOrNull { it.name == prefs.getString("theme", null) } ?: ThemeMode.SYSTEM,
+        accent = AccentTheme.entries.firstOrNull { it.name == prefs.getString("accent", null) } ?: AccentTheme.BLUE,
         haptics = prefs.getBoolean("haptics", true),
         volumeKeys = prefs.getBoolean("volumeKeys", true),
         keepScreenOn = prefs.getBoolean("keepScreenOn", false),
