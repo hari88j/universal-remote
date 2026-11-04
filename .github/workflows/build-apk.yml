@@ -59,7 +59,14 @@ jobs:
           else
             cp app/build/outputs/apk/debug/*.apk dist/UniversalRemote.apk
           fi
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest dist/UniversalRemote.apk --title "Universal Remote (latest build)" --notes "Built from ${GITHUB_SHA::7}. Download UniversalRemote.apk on your phone and install."
+          NOTES="Built from ${GITHUB_SHA::7}. Download UniversalRemote.apk on your phone and install."
+          if gh release view latest > /dev/null 2>&1; then
+            # Keep the same release (and download link); just move the tag and replace the APK.
+            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true > /dev/null
+            gh release upload latest dist/UniversalRemote.apk --clobber
+            gh release edit latest --notes "$NOTES"
+          else
+            gh release create latest dist/UniversalRemote.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
