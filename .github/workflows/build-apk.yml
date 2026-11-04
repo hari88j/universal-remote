@@ -53,6 +53,7 @@ jobs:
       - name: Publish APK as a release (direct download link)
         if: github.ref == 'refs/heads/main'
         run: |
+          set -o pipefail
           mkdir -p dist
           if [ "${{ steps.release.outcome }}" = "success" ]; then
             cp app/build/outputs/apk/release/*.apk dist/UniversalRemote.apk
@@ -60,13 +61,15 @@ jobs:
             cp app/build/outputs/apk/debug/*.apk dist/UniversalRemote.apk
           fi
           NOTES="Built from ${GITHUB_SHA::7}. Download UniversalRemote.apk on your phone and install."
-          if gh release view latest > /dev/null 2>&1; then
-            # Keep the same release (and download link); just move the tag and replace the APK.
-            gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true > /dev/null
-            gh release upload latest dist/UniversalRemote.apk --clobber
-            gh release edit latest --notes "$NOTES"
-          else
-            gh release create latest dist/UniversalRemote.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
-          fi
+          publish() {
+            if gh release view apk > /dev/null 2>&1; then
+              gh api -X PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/apk" -f sha="$GITHUB_SHA" -F force=true > /dev/null
+              gh release upload apk dist/UniversalRemote.apk --clobber
+              gh release edit apk --notes "$NOTES"
+            else
+              gh release create apk dist/UniversalRemote.apk --target "$GITHUB_SHA" --title "Universal Remote (latest build)" --notes "$NOTES"
+            fi
+          }
+          publish 2>&1 | tee publish.log || { while IFS= read -r l; do echo "::error::$l"; done < publish.log; exit 1; }
         env:
           GH_TOKEN: ${{ github.token }}
